@@ -89,3 +89,8 @@
             padding: 10px 20px;
             margin: 10px;
         }
+.navbar-container {
+  width: 100%;
+  background-color: #f0f0f0; /* or any color you prefer */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
