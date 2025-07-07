@@ -1,8 +1,15 @@
 import { Routes } from '@angular/router';
-import { AuthComponent } from './auth/auth';  // Adjust if file name differs
+import { AuthComponent } from './auth/auth';
+import { HomeComponent } from './home/home';   // ✅ Import HomeComponent
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/auth', pathMatch: 'full' }, 
-  { path: 'auth', component: AuthComponent },  // ✅ Add this route for login
+  { path: '', component: HomeComponent },        // ✅ Home page (shows Navbar)
+  { path: 'auth', component: AuthComponent },    // ✅ Login page (no Navbar)
+  { path: '**', redirectTo: '' }                 // ✅ Wildcard redirect to home
 ];
+
+
+
+
+
 
