@@ -8,7 +8,7 @@ import { Navbar } from "./navbar/navbar";
 
   templateUrl: './app.html',
   styleUrl: './app.css',
-  imports: [Navbar]
+  imports: [Navbar, AuthComponent]
 })
 export class App {
   protected title = 'codekid';
