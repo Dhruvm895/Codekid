@@ -1,27 +1,78 @@
-<canvas #bladeTrail></canvas>
+<!-- auth.html -->
+<div class="auth-page">
+  <canvas #bladeTrail class="blade-trail"></canvas>
 
   <div class="login-container">
     <div class="avatar">
       <img src="https://cdn-icons-png.flaticon.com/512/4712/4712104.png" alt="Robot Avatar" />
     </div>
+
     <h2>Log In Coder 🤖</h2>
-    <form>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
         <label for="email">Email Address</label>
-        <input type="email" id="email" placeholder="you@coder.com" required />
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          placeholder="you@coder.com"
+          [class.error]="email?.invalid && email?.touched"
+          [disabled]="isLoading"
+        />
+        <div *ngIf="email?.invalid && email?.touched" class="error-message">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
+        </div>
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" placeholder="••••••••" required />
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          placeholder="••••••••"
+          [class.error]="password?.invalid && password?.touched"
+          [disabled]="isLoading"
+        />
+        <div *ngIf="password?.invalid && password?.touched" class="error-message">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
       </div>
 
       <div class="form-options">
-        <label><input type="checkbox" /> Remember me</label>
-        <a href="#">Forgot Password?</a>
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            formControlName="rememberMe"
+            [disabled]="isLoading"
+          />
+          <span class="checkmark"></span>
+          Remember me
+        </label>
+        <a href="#" class="forgot-password" (click)="onForgotPassword(); $event.preventDefault()">
+          Forgot Password?
+        </a>
       </div>
 
-      <button type="submit" class="login-button">Log In</button>
+      <div *ngIf="errorMessage" class="error-banner">
+        {{ errorMessage }}
+      </div>
+
+      <button
+        type="submit"
+        class="login-button"
+        [disabled]="loginForm.invalid || isLoading"
+        [class.loading]="isLoading"
+      >
+        <span *ngIf="!isLoading">Log In</span>
+        <span *ngIf="isLoading">
+          <span class="spinner"></span>
+          Logging in...
+        </span>
+      </button>
     </form>
   </div>
-
+</div>
