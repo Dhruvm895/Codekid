@@ -7,8 +7,8 @@ import { Navbar } from "./navbar/navbar";
   selector: 'app-root',
 
   templateUrl: './app.html',
-  styleUrl: './app.css',
-  imports: [Navbar, AuthComponent]
+  styleUrls: ['./app.css'],
+  imports: [Navbar,  RouterOutlet]
 })
 export class App {
   protected title = 'codekid';

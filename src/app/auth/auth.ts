@@ -1,9 +1,19 @@
-import { Component, AfterViewInit, ElementRef, ViewChild } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, AfterViewInit, ElementRef, ViewChild, Inject } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 import Swal from 'sweetalert2';
+import { PLATFORM_ID } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+
+interface Point {
+  x: number;
+  y: number;
+  alpha: number;
+}
 
 @Component({
   selector: 'app-auth',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
   templateUrl: './auth.html',
   styleUrls: ['./auth.css']
 })
@@ -13,10 +23,10 @@ export class AuthComponent implements AfterViewInit {
   canvasRef!: ElementRef<HTMLCanvasElement>;
 
   private ctx!: CanvasRenderingContext2D;
-  private width: number = window.innerWidth;
-  private height: number = window.innerHeight;
-  private points: { x: number; y: number; alpha: number }[] = [];
-  private maxPoints: number = 25;
+  private width: number = 0;
+  private height: number = 0;
+  private points: Point[] = [];
+  private readonly maxPoints: number = 25;
   private lastMouseTime: number = Date.now();
 
   credentials = {
@@ -26,12 +36,21 @@ export class AuthComponent implements AfterViewInit {
 
   error: string = '';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, @Inject(PLATFORM_ID) private platformId: Object) {}
 
   ngAfterViewInit(): void {
+    if (isPlatformBrowser(this.platformId)) {
     const canvas = this.canvasRef.nativeElement;
-    this.ctx = canvas.getContext('2d')!;
+    const context = canvas.getContext('2d');
 
+    if (!context) {
+      console.error('Canvas context not available.');
+      return;
+    }
+
+    this.ctx = context;
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
     this.resizeCanvas();
 
     window.addEventListener('resize', () => this.resizeCanvas());
@@ -39,6 +58,7 @@ export class AuthComponent implements AfterViewInit {
     window.addEventListener('mouseout', () => this.lastMouseTime = Date.now() - 2000);
 
     this.drawTrail();
+    }
   }
 
   private resizeCanvas(): void {
@@ -49,9 +69,9 @@ export class AuthComponent implements AfterViewInit {
     canvas.height = this.height;
   }
 
-  private onMouseMove(e: MouseEvent): void {
+  private onMouseMove(event: MouseEvent): void {
     this.lastMouseTime = Date.now();
-    this.points.push({ x: e.clientX, y: e.clientY, alpha: 1 });
+    this.points.push({ x: event.clientX, y: event.clientY, alpha: 1 });
 
     if (this.points.length > this.maxPoints) {
       this.points.shift();
@@ -76,7 +96,7 @@ export class AuthComponent implements AfterViewInit {
       this.ctx.beginPath();
       this.ctx.moveTo(p1.x, p1.y);
       this.ctx.lineTo(p2.x, p2.y);
-      this.ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
+      this.ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
       this.ctx.lineWidth = lineWidth;
       this.ctx.shadowColor = 'white';
       this.ctx.shadowBlur = 15;
@@ -94,10 +114,10 @@ export class AuthComponent implements AfterViewInit {
   }
 
   onSubmit(): void {
-    const emailInput = (document.getElementById('email') as HTMLInputElement).value.trim();
-    const passwordInput = (document.getElementById('password') as HTMLInputElement).value.trim();
+    const email = this.credentials.email.trim();
+    const password = this.credentials.password.trim();
 
-    if (!emailInput || !passwordInput) {
+    if (!email || !password) {
       Swal.fire({
         title: 'Error',
         text: 'Please enter both email and password.',
@@ -107,17 +127,17 @@ export class AuthComponent implements AfterViewInit {
       return;
     }
 
-    // Store login info in localStorage
-    localStorage.setItem('userEmail', emailInput);
-    localStorage.setItem('userPassword', passwordInput);  // Optional: storing password is not secure in real apps
+    // Store login info (Note: Don't store passwords in real applications)
+    localStorage.setItem('userEmail', email);
+    localStorage.setItem('userPassword', password);
 
     Swal.fire({
       title: 'Login Successful!',
-      text: `Welcome, ${emailInput}!`,
+      text: `Welcome, ${email}!`,
       icon: 'success',
       confirmButtonText: 'OK'
     }).then(() => {
-      this.router.navigate(['/home']);  // ✅ Replace '/home' with your actual route
+      this.router.navigate(['/home']);
     });
   }
 }

@@ -1,23 +1,47 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, AfterViewInit, Inject, PLATFORM_ID, ElementRef, ViewChild } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 
-import { AuthComponent } from './auth';  // ✅ Correct import
+@Component({
+  selector: 'app-auth',
+  templateUrl: './auth.html',
+  styleUrls: ['./auth.css']
+})
+export class AuthComponent implements AfterViewInit {
 
-describe('AuthComponent', () => {   // ✅ Correct name
-  let component: AuthComponent;
-  let fixture: ComponentFixture<AuthComponent>;
+  @ViewChild('bladeTrail', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      declarations: [AuthComponent]   // ✅ Use declarations not imports
-    })
-    .compileComponents();
+  private isBrowser: boolean;
 
-    fixture = TestBed.createComponent(AuthComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private router: Router
+  ) {
+    this.isBrowser = isPlatformBrowser(this.platformId);
+  }
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-});
+  ngAfterViewInit(): void {
+    if (this.isBrowser && this.canvasRef?.nativeElement) {
+      const canvas = this.canvasRef.nativeElement;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(10, 10, 100, 100);
+      }
+    }
+  }
+
+  onLoginSuccess(): void {
+    if (this.isBrowser) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Login Successful!',
+        showConfirmButton: false,
+        timer: 1500
+      }).then(() => {
+        this.router.navigate(['/dashboard']);
+      });
+    }
+  }
+}

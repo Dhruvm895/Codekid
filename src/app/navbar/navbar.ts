@@ -32,7 +32,7 @@ export class Navbar {
   }
 
   onLoginClick(): void {
-    console.log('Login clicked');
+    console.log('Login button clicked!'); // Debug log
     this.router.navigate(['/auth']);  // ✅ Navigate to /auth route
   }
 }
