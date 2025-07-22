@@ -3,7 +3,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService, LoginCredentials } from '../services/auth.service';
 
 interface TrailPoint {
   x: number;
@@ -24,7 +23,6 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
-  successMessage = '';
 
   private animationFrameId: any;
   private ctx!: CanvasRenderingContext2D;
@@ -39,8 +37,7 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   constructor(
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private fb: FormBuilder,
-    private authService: AuthService
+    private fb: FormBuilder
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
 
@@ -50,15 +47,10 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
       password: ['', [Validators.required, Validators.minLength(6)]],
       rememberMe: [false]
     });
+  }
 
-    // Check authentication status after initialization
-    // This is done after construction to avoid circular dependency
-    setTimeout(() => {
-      this.authService.checkAuthStatus();
-      if (this.authService.isLoggedIn()) {
-        this.router.navigate(['/dashboard']);
-      }
-    }, 0);
+  navigateToSignup() {
+    this.router.navigate(['/auth/signup']);
   }
 
   ngAfterViewInit(): void {
@@ -74,15 +66,6 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
       cancelAnimationFrame(this.animationFrameId);
     }
     this.removeEventListeners();
-  }
-
-  // Add methods to control form state
-  private enableForm(): void {
-    this.loginForm.enable();
-  }
-
-  private disableForm(): void {
-    this.loginForm.disable();
   }
 
   private setupCanvas(): void {
@@ -181,105 +164,36 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
     if (this.loginForm.valid && !this.isLoading) {
       this.isLoading = true;
       this.errorMessage = '';
-      this.successMessage = '';
-      this.disableForm(); // Disable entire form during loading
 
       const { email, password, rememberMe } = this.loginForm.value;
-      const credentials: LoginCredentials = { email, password };
 
-      // Add detailed logging
-      console.log('🔍 Login attempt started');
-      console.log('📧 Email:', email);
-      console.log('🌐 API URL: http://localhost:8080/api/auth/login');
-      console.log('📤 Sending request...');
+      // Simulate API call
+      setTimeout(() => {
+        try {
+          console.log('Login attempt:', { email, password, rememberMe });
 
-      // Real API call to your MySQL database via localhost:8080
-      this.authService.login(credentials).subscribe({
-        next: (response) => {
-          console.log('✅ Response received:', response);
-          console.log('📊 Response status: SUCCESS');
-
-          if (response.success) {
-            this.successMessage = `Welcome back, ${response.user?.name || 'Coder'}!`;
-
-            // Handle remember me functionality
-            if (rememberMe && response.token) {
-              localStorage.setItem('rememberMe', 'true');
-              console.log('💾 Remember me enabled - Token stored');
+          // Simulate successful login
+          if (email && password) {
+            if (rememberMe) {
+              localStorage.setItem('authToken', 'demo-token-' + Date.now());
             }
 
-            // Brief delay to show success message
-            setTimeout(() => {
-              this.router.navigate(['/dashboard']);
-            }, 1500);
+            // Navigate to dashboard or home
+            this.router.navigate(['/dashboard']);
           } else {
-            this.errorMessage = response.message || 'Login failed';
-            this.isLoading = false;
-            this.enableForm(); // Re-enable form on error
+            this.errorMessage = 'Invalid credentials';
           }
-        },
-        error: (error) => {
-          console.error('❌ Request failed with error:', error);
-          console.log('📊 Error status:', error.status);
-          console.log('📊 Error message:', error.message);
-
-          // Handle different error types from MySQL/backend
-          if (error.status === 0) {
-            console.log('🚫 CORS or Network Error - Backend not reachable');
-            this.errorMessage = 'Cannot connect to server. Please ensure backend is running on localhost:8080';
-          } else if (error.status === 401) {
-            this.errorMessage = 'Invalid email or password. Please check your credentials.';
-          } else if (error.status === 404) {
-            this.errorMessage = 'User not found in database. Please register first.';
-          } else if (error.status === 500) {
-            this.errorMessage = 'Database connection error. Please try again later.';
-          } else {
-            this.errorMessage = error.error?.message || 'Login failed. Please try again.';
-          }
-
+        } catch (error) {
+          this.errorMessage = 'Login failed. Please try again.';
+        } finally {
           this.isLoading = false;
-          this.enableForm(); // Re-enable form after error
-        },
-        complete: () => {
-          // Only reset loading state if not successful (success case is handled in next())
-          if (this.errorMessage) {
-            this.isLoading = false;
-            this.enableForm();
-          }
         }
-      });
+      }, 1000);
     } else {
-      console.log('⚠️ Form is invalid or already loading');
       this.markFormGroupTouched();
     }
   }
 
-  onForgotPassword(): void {
-    const email = this.loginForm.get('email')?.value;
-
-    if (email && this.email?.valid) {
-      this.isLoading = true;
-      this.disableForm(); // Disable form during forgot password request
-
-      this.authService.forgotPassword(email).subscribe({
-        next: (response) => {
-          console.log('📧 Password reset email request sent:', response);
-          this.successMessage = 'Password reset instructions sent to your email.';
-          this.isLoading = false;
-          this.enableForm(); // Re-enable form
-        },
-        error: (error) => {
-          console.error('❌ Forgot password failed:', error);
-          this.errorMessage = 'Failed to send password reset email. Please try again.';
-          this.isLoading = false;
-          this.enableForm(); // Re-enable form on error
-        }
-      });
-    } else {
-      this.errorMessage = 'Please enter a valid email address first.';
-      this.loginForm.get('email')?.markAsTouched();
-    }
-  }
 
   private markFormGroupTouched(): void {
     Object.keys(this.loginForm.controls).forEach(key => {
