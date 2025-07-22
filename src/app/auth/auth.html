@@ -1,4 +1,4 @@
-<div class="auth-page">
+<div class="auth-page ">
   <canvas #bladeTrail class="blade-trail"></canvas>
 
   <div class="login-container">
@@ -6,7 +6,7 @@
       <img src="https://cdn-icons-png.flaticon.com/512/4712/4712104.png" alt="Robot Avatar" />
     </div>
 
-    <h2>Log In Coder</h2>
+    <h2>Log In Coder 🤖</h2>
 
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
@@ -17,7 +17,6 @@
           formControlName="email"
           placeholder="you@coder.com"
           [class.error]="email?.invalid && email?.touched"
-          [disabled]="isLoading"
         />
         <div *ngIf="email?.invalid && email?.touched" class="error-message">
           <span *ngIf="email?.errors?.['required']">Email is required</span>
@@ -33,7 +32,6 @@
           formControlName="password"
           placeholder="••••••••"
           [class.error]="password?.invalid && password?.touched"
-          [disabled]="isLoading"
         />
         <div *ngIf="password?.invalid && password?.touched" class="error-message">
           <span *ngIf="password?.errors?.['required']">Password is required</span>
@@ -46,40 +44,34 @@
           <input
             type="checkbox"
             formControlName="rememberMe"
-            [disabled]="isLoading"
           />
           <span class="checkmark"></span>
           Remember me
         </label>
+        <a href="#" class="forgot-password" (click)="onForgotPassword(); $event.preventDefault()">
+          Forgot Password?
+        </a>
       </div>
 
       <div *ngIf="errorMessage" class="error-banner">
         {{ errorMessage }}
       </div>
 
-      <!-- Log In Button -->
-      <button
-        type="submit"
-        class="login-button"
-        [disabled]="loginForm.invalid || isLoading"
-        [class.loading]="isLoading"
-      >
-        <span *ngIf="!isLoading">Log In</span>
-        <span *ngIf="isLoading">
-          <span class="spinner"></span>
-          Logging in...
-        </span>
-      </button>
-
-      <!-- Signup Button -->
-      <button
-        type="button"
-        class="signup-button"
-        (click)="navigateToSignup()"
-        [disabled]="isLoading"
-      >
-        Sign Up
-      </button>
+      <div class="button-group">
+        <button
+          type="submit"
+          class="login-button"
+          [disabled]="loginForm.invalid || isLoading"
+          [class.loading]="isLoading"
+        >
+          <span *ngIf="!isLoading">Log In</span>
+          <span *ngIf="isLoading">
+            <span class="spinner"></span>
+            Logging in...
+          </span>
+        </button>
+        <a routerLink="/signup" class="signup-button">Sign Up</a>
+      </div>
     </form>
   </div>
 </div>               

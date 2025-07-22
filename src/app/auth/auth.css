@@ -186,8 +186,15 @@ h2 {
   text-align: center;
 }
 
-.login-button {
-  width: 100%;
+.button-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.login-button,
+.signup-button {
+  flex-grow: 1;
   background: linear-gradient(135deg, #8b5cf6, #4c7bf5);
   color: white;
   padding: 12px;
@@ -204,9 +211,12 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: center;
+  text-decoration: none;
+  text-align: center;
 }
 
-.login-button::before {
+.login-button::before,
+.signup-button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -219,12 +229,14 @@ h2 {
   z-index: 0;
 }
 
-.login-button:hover:not(:disabled) {
+.login-button:hover:not(:disabled),
+.signup-button:hover {
   transform: scale(1.05);
   box-shadow: 0 0 20px #5579d6;
 }
 
-.login-button:hover:not(:disabled)::before {
+.login-button:hover:not(:disabled)::before,
+.signup-button:hover::before {
   left: 120%;
 }
 
@@ -234,7 +246,8 @@ h2 {
   background: linear-gradient(135deg, #999, #666);
 }
 
-.login-button:active:not(:disabled) {
+.login-button:active:not(:disabled),
+.signup-button:active {
   transform: scale(0.98);
 }
 
@@ -285,7 +298,8 @@ h2 {
     font-size: 12px;
   }
 
-  .login-button {
+  .login-button,
+  .signup-button {
     padding: 10px;
     font-size: 15px;
   }
@@ -301,6 +315,7 @@ h2 {
 
 /* Focus accessibility */
 .login-button:focus-visible,
+.signup-button:focus-visible,
 .form-group input:focus-visible,
 .checkbox-label input:focus-visible,
 .forgot-password:focus-visible {

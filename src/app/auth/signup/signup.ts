@@ -40,14 +40,24 @@ export class SignupComponent {
 
     this.isLoading = true;
     this.errorMessage = '';
+    this.disableForm();
 
     setTimeout(() => {
       this.isLoading = false;
+      this.enableForm();
       const { name, email, password } = this.signupForm.value;
       console.log('SignUp success:', { name, email, password });
 
       this.router.navigate(['/auth']);
     }, 1500);
+  }
+
+  enableForm() {
+    this.signupForm.enable();
+  }
+
+  disableForm() {
+    this.signupForm.disable();
   }
 
   signUpWithGoogle() {

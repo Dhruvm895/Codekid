@@ -1,8 +1,10 @@
-import { Component, Inject, PLATFORM_ID, AfterViewInit, ElementRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, Inject, PLATFORM_ID, AfterViewInit, ElementRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router, RouterLink } from '@angular/router';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { AuthService, LoginCredentials } from '../services/auth.service';
 
 interface TrailPoint {
   x: number;
@@ -13,44 +15,65 @@ interface TrailPoint {
 @Component({
   selector: 'app-auth',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './auth.html',
   styleUrls: ['./auth.css']
 })
-export class AuthComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('bladeTrail', { static: true }) canvasRef!: ElementRef<HTMLCanvasElement>;
+export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
+  // Use { static: false } as the canvas is only accessed in ngAfterViewInit.
+  @ViewChild('bladeTrail', { static: false }) canvasRef!: ElementRef<HTMLCanvasElement>;
 
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  successMessage = '';
 
-  private animationFrameId: any;
-  private ctx!: CanvasRenderingContext2D;
+  private animationFrameId?: number;
+  private ctx?: CanvasRenderingContext2D;
   private points: TrailPoint[] = [];
-  private maxPoints = 25;
-  private lastMouseTime = Date.now();
+  private readonly maxPoints = 25;
+  private lastMouseTime = 0;
   private width = 0;
   private height = 0;
 
-  isBrowser: boolean;
+  // BEST PRACTICE: Use a Subscription object to manage all subscriptions.
+  private componentSubscriptions = new Subscription();
+
+  // FIX: Store bound event listener functions to properly remove them later.
+  private _onResize!: () => void;
+  private _onMouseMove!: (e: MouseEvent) => void;
+  private _onMouseOut!: () => void;
+
+  private readonly isBrowser: boolean;
 
   constructor(
     private router: Router,
     @Inject(PLATFORM_ID) private platformId: Object,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService
   ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
 
-    // Initialize reactive form
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
-      rememberMe: [false]
+      rememberMe: [{ value: false, disabled: false }]
     });
   }
 
-  navigateToSignup() {
-    this.router.navigate(['/auth/signup']);
+  ngOnInit(): void {
+    // REFACTOR: Moved auth check from constructor's setTimeout to ngOnInit.
+    this.authService.checkAuthStatus();
+    if (this.authService.isLoggedIn()) {
+      this.router.navigate(['/dashboard']);
+    }
+
+    // FIX: Initialize bound functions once.
+    if (this.isBrowser) {
+        this._onResize = this.onResize.bind(this);
+        this._onMouseMove = this.onMouseMove.bind(this);
+        this._onMouseOut = this.onMouseOut.bind(this);
+    }
   }
 
   ngAfterViewInit(): void {
@@ -62,23 +85,29 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    if (this.isBrowser && this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
+    // BEST PRACTICE: Unsubscribe from all subscriptions to prevent memory leaks.
+    this.componentSubscriptions.unsubscribe();
+
+    if (this.isBrowser) {
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+      }
+      // FIX: Ensure event listeners are correctly removed.
+      this.removeEventListeners();
     }
-    this.removeEventListeners();
   }
 
-  private setupCanvas(): void {
-    if (!this.isBrowser) return;
+  // Getter methods for cleaner template access
+  get email(): AbstractControl | null { return this.loginForm.get('email'); }
+  get password(): AbstractControl | null { return this.loginForm.get('password'); }
 
+  private setupCanvas(): void {
     const canvas = this.canvasRef.nativeElement;
     this.ctx = canvas.getContext('2d')!;
     this.updateCanvasSize();
   }
 
   private updateCanvasSize(): void {
-    if (!this.isBrowser) return;
-
     this.width = window.innerWidth;
     this.height = window.innerHeight;
     const canvas = this.canvasRef.nativeElement;
@@ -87,19 +116,17 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   }
 
   private addEventListeners(): void {
-    if (!this.isBrowser) return;
-
-    window.addEventListener('resize', this.onResize.bind(this));
-    window.addEventListener('mousemove', this.onMouseMove.bind(this));
-    window.addEventListener('mouseout', this.onMouseOut.bind(this));
+    // FIX: Add the pre-bound function references.
+    window.addEventListener('resize', this._onResize);
+    window.addEventListener('mousemove', this._onMouseMove);
+    window.addEventListener('mouseout', this._onMouseOut);
   }
 
   private removeEventListeners(): void {
-    if (!this.isBrowser) return;
-
-    window.removeEventListener('resize', this.onResize.bind(this));
-    window.removeEventListener('mousemove', this.onMouseMove.bind(this));
-    window.removeEventListener('mouseout', this.onMouseOut.bind(this));
+    // FIX: Remove the exact same function references.
+    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('mousemove', this._onMouseMove);
+    window.removeEventListener('mouseout', this._onMouseOut);
   }
 
   private onResize(): void {
@@ -109,23 +136,20 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
   private onMouseMove(e: MouseEvent): void {
     this.lastMouseTime = Date.now();
     this.points.push({ x: e.clientX, y: e.clientY, alpha: 1 });
-
     if (this.points.length > this.maxPoints) {
       this.points.shift();
     }
   }
 
   private onMouseOut(): void {
-    this.lastMouseTime = Date.now() - 2000;
+    this.lastMouseTime = Date.now() - 2000; // Trigger fade out
   }
 
-  startBladeTrail(): void {
-    if (!this.isBrowser) return;
-
+  private startBladeTrail(): void {
     const drawTrail = () => {
-      const now = Date.now();
+      if (!this.ctx) return;
 
-      if (now - this.lastMouseTime > 1000) {
+      if (Date.now() - this.lastMouseTime > 1000) {
         this.points.length = 0;
       }
 
@@ -141,69 +165,103 @@ export class AuthComponent implements AfterViewInit, OnDestroy {
         this.ctx.moveTo(p1.x, p1.y);
         this.ctx.lineTo(p2.x, p2.y);
         this.ctx.strokeStyle = `rgba(255,255,255,${opacity})`;
-        this.ctx.lineWidth = lineWidth;
         this.ctx.shadowColor = "white";
         this.ctx.shadowBlur = 15;
+        this.ctx.lineWidth = lineWidth;
         this.ctx.stroke();
         this.ctx.closePath();
 
         p1.alpha *= 0.92;
       }
 
-      while (this.points.length && this.points[0].alpha < 0.05) {
+      while (this.points.length > 0 && this.points[0].alpha < 0.05) {
         this.points.shift();
       }
 
       this.animationFrameId = requestAnimationFrame(drawTrail);
     };
-
     drawTrail();
   }
 
   onSubmit(): void {
-    if (this.loginForm.valid && !this.isLoading) {
-      this.isLoading = true;
-      this.errorMessage = '';
-
-      const { email, password, rememberMe } = this.loginForm.value;
-
-      // Simulate API call
-      setTimeout(() => {
-        try {
-          console.log('Login attempt:', { email, password, rememberMe });
-
-          // Simulate successful login
-          if (email && password) {
-            if (rememberMe) {
-              localStorage.setItem('authToken', 'demo-token-' + Date.now());
-            }
-
-            // Navigate to dashboard or home
-            this.router.navigate(['/dashboard']);
-          } else {
-            this.errorMessage = 'Invalid credentials';
-          }
-        } catch (error) {
-          this.errorMessage = 'Login failed. Please try again.';
-        } finally {
-          this.isLoading = false;
-        }
-      }, 1000);
-    } else {
-      this.markFormGroupTouched();
+    if (this.loginForm.invalid || this.isLoading) {
+      console.log('⚠️ Form is invalid or already loading');
+      this.loginForm.markAllAsTouched();
+      return;
     }
-  }
 
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.loginForm.disable();
 
-  private markFormGroupTouched(): void {
-    Object.keys(this.loginForm.controls).forEach(key => {
-      const control = this.loginForm.get(key);
-      control?.markAsTouched();
+    const { email, password, rememberMe } = this.loginForm.getRawValue();
+    const credentials: LoginCredentials = { email, password };
+
+    const loginSub = this.authService.login(credentials).subscribe({
+      next: (response) => {
+        console.log('✅ Login successful:', response);
+        if (response.success) {
+          this.successMessage = `Welcome back, ${response.user?.name || 'Coder'}!`;
+          if (rememberMe && response.token) {
+            localStorage.setItem('rememberMe', 'true');
+          }
+          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+        } else {
+          this.handleLoginError({ message: response.message || 'Login failed' });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Login failed with error:', error);
+        this.handleLoginError(error);
+      },
     });
+
+    this.componentSubscriptions.add(loginSub);
   }
 
-  // Getter methods for form validation
-  get email() { return this.loginForm.get('email'); }
-  get password() { return this.loginForm.get('password'); }
-  get rememberMe() { return this.loginForm.get('rememberMe'); }
+  private handleLoginError(error: any): void {
+      if (error.status === 0) {
+        this.errorMessage = 'Cannot connect to server. Is the backend running?';
+      } else if (error.status === 401) {
+        this.errorMessage = 'Invalid email or password.';
+      } else if (error.status === 404) {
+        this.errorMessage = 'User not found. Please register first.';
+      } else if (error.status === 500) {
+        this.errorMessage = 'Server error. Please try again later.';
+      } else {
+        this.errorMessage = error.error?.message || error.message || 'An unknown error occurred.';
+      }
+      this.isLoading = false;
+      this.loginForm.enable();
+  }
+
+  onForgotPassword(): void {
+    const emailControl = this.loginForm.get('email');
+    if (!emailControl?.valid) {
+      this.errorMessage = 'Please enter a valid email address first.';
+      emailControl?.markAsTouched();
+      return;
+    }
+
+    this.isLoading = true;
+    this.loginForm.disable();
+
+    const forgotPasswordSub = this.authService.forgotPassword(emailControl.value).subscribe({
+      next: (response) => {
+        console.log('📧 Password reset email request sent:', response);
+        this.successMessage = 'Password reset instructions sent to your email.';
+        this.isLoading = false;
+        this.loginForm.enable();
+      },
+      error: (error) => {
+        console.error('❌ Forgot password failed:', error);
+        this.errorMessage = 'Failed to send password reset email. Please try again.';
+        this.isLoading = false;
+        this.loginForm.enable();
+      }
+    });
+
+    this.componentSubscriptions.add(forgotPasswordSub);
+  }
 }

@@ -19,7 +19,9 @@ export class App {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
-        this.showNavbar = event.url !== '/auth';
+        // Temporarily show navbar on all pages for debugging
+        this.showNavbar = true;
+        console.log('Current route:', event.url);
       });
   }
 }
