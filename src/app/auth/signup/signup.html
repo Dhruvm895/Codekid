@@ -10,16 +10,16 @@
 
     <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
-        <label for="name">Full Name</label>
+        <label for="fullName">Full Name</label>
         <input
           type="text"
-          id="name"
-          formControlName="name"
+          id="fullName"
+          formControlName="fullName"
           placeholder="John Doe"
-          [class.error]="name?.invalid && name?.touched"
+          [class.error]="fullName?.invalid && fullName?.touched"
         />
-        <div *ngIf="name?.invalid && name?.touched" class="error-message">
-          <span *ngIf="name?.errors?.['required']">Name is required</span>
+        <div *ngIf="fullName?.invalid && fullName?.touched" class="error-message">
+          <span *ngIf="fullName?.errors?.['required']">Full name is required</span>
         </div>
       </div>
 
@@ -49,7 +49,7 @@
         />
         <div *ngIf="password?.invalid && password?.touched" class="error-message">
           <span *ngIf="password?.errors?.['required']">Password is required</span>
-          <span *ngIf="password?.errors?.['minlength']">Minimum 6 characters</span>
+          <span *ngIf="password?.errors?.['minlength']">Minimum 8 characters required</span>
         </div>
       </div>
 
@@ -73,10 +73,10 @@
 
     <div class="divider"><span>OR</span></div>
 
-    
+
 
     <p class="redirect-link">
-      Already have an account? <a routerLink="/auth/login">Log In</a>
+      Already have an account? <a routerLink="/auth">Log In</a>
     </p>
   </div>
 </div>

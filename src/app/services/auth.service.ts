@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject, tap } from 'rxjs';
+import { Observable, BehaviorSubject, tap, catchError, throwError } from 'rxjs';
+import { isPlatformBrowser } from '@angular/common';
+import { Inject, PLATFORM_ID } from '@angular/core';
 
 export interface LoginCredentials {
   email: string;
@@ -8,7 +10,7 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-  name: string;
+  fullName: string;
   email: string;
   password: string;
 }
@@ -34,13 +36,17 @@ export class AuthService {
 
   public user$ = this.userSubject.asObservable();
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(PLATFORM_ID) private platformId: Object) {
     console.log('🔧 AuthService initialized with API URL:', this.apiUrl);
     // Don't auto-check token to avoid circular dependency with interceptor
     // Token check will be done manually when needed
   }
 
   private checkExistingToken(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return; // Skip localStorage access during SSR
+    }
+    
     const token = localStorage.getItem(this.tokenKey);
     if (token) {
       // Verify token with backend
@@ -63,7 +69,7 @@ export class AuthService {
     console.log('📡 Making HTTP POST request to:', url);
     console.log('📤 Request payload:', { email: credentials.email, password: '[HIDDEN]' });
 
-    return this.http.post<LoginResponse>(url, credentials, {
+    return this.http.post<any>(url, credentials, {
       headers: new HttpHeaders({
         'Content-Type': 'application/json'
       })
@@ -71,11 +77,25 @@ export class AuthService {
       tap(response => {
         console.log('📥 Raw response from server:', response);
 
-        if (response.success && response.token) {
-          localStorage.setItem(this.tokenKey, response.token);
-          this.userSubject.next(response.user);
-          console.log('✅ Login successful, token stored');
+        // Backend returns user object directly, handle it properly
+        if (response && response.id) {
+          // Store user info if browser environment
+          if (isPlatformBrowser(this.platformId)) {
+            // Create a simple token (could be enhanced later)
+            const token = `user_${response.id}_${Date.now()}`;
+            localStorage.setItem(this.tokenKey, token);
+            this.userSubject.next({
+              id: response.id.toString(),
+              email: response.email,
+              name: response.fullName
+            });
+            console.log('✅ Login successful, user data stored');
+          }
         }
+      }),
+      catchError(error => {
+        console.error('❌ Login error:', error);
+        return throwError(() => error);
       })
     );
   }
@@ -83,17 +103,45 @@ export class AuthService {
   register(userData: RegisterData): Observable<any> {
     const url = `${this.apiUrl}/register`;
     console.log('📡 Making HTTP POST request to:', url);
+    console.log('📦 Request data:', userData);
+    console.log('📦 Request data stringified:', JSON.stringify(userData));
 
     return this.http.post(url, userData, {
       headers: new HttpHeaders({
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json, text/plain'
+      }),
+      responseType: 'text' as 'json' // Accept text response
+    }).pipe(
+      tap(response => console.log('✅ Registration response:', response)),
+      catchError(error => {
+        console.error('❌ Registration error details:', {
+          status: error.status,
+          statusText: error.statusText,
+          message: error.message,
+          url: error.url,
+          errorBody: error.error,
+          fullError: error
+        });
+        
+        // Log the specific error message from backend
+        if (error.error && error.error.message) {
+          console.error('🚨 Backend error message:', error.error.message);
+        }
+        if (error.error && error.error.errors) {
+          console.error('🚨 Backend validation errors:', error.error.errors);
+        }
+        
+        return throwError(() => error);
       })
-    });
+    );
   }
 
   logout(): void {
-    localStorage.removeItem(this.tokenKey);
-    localStorage.removeItem('rememberMe');
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem(this.tokenKey);
+      localStorage.removeItem('rememberMe');
+    }
     this.userSubject.next(null);
     console.log('🚪 User logged out, tokens cleared');
   }
@@ -115,6 +163,9 @@ export class AuthService {
   }
 
   getToken(): string | null {
+    if (!isPlatformBrowser(this.platformId)) {
+      return null; // Return null during SSR
+    }
     return localStorage.getItem(this.tokenKey);
   }
 
@@ -128,6 +179,10 @@ export class AuthService {
 
   // Manual token check method to avoid circular dependency
   checkAuthStatus(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return; // Skip localStorage access during SSR
+    }
+    
     const token = localStorage.getItem(this.tokenKey);
     if (token) {
       // Verify token with backend

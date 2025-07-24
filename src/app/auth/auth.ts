@@ -1,4 +1,4 @@
-import { Component, Inject, PLATFORM_ID, AfterViewInit, ElementRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
+import { Component, Inject, PLATFORM_ID, AfterViewInit, ElementRef, ViewChild, OnDestroy, OnInit, afterNextRender } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -59,15 +59,17 @@ export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
       password: ['', [Validators.required, Validators.minLength(6)]],
       rememberMe: [{ value: false, disabled: false }]
     });
+
+    // Use afterNextRender for browser-only auth check
+    afterNextRender(() => {
+      this.authService.checkAuthStatus();
+      if (this.authService.isLoggedIn()) {
+        this.router.navigate(['/dashboard']);
+      }
+    });
   }
 
   ngOnInit(): void {
-    // REFACTOR: Moved auth check from constructor's setTimeout to ngOnInit.
-    this.authService.checkAuthStatus();
-    if (this.authService.isLoggedIn()) {
-      this.router.navigate(['/dashboard']);
-    }
-
     // FIX: Initialize bound functions once.
     if (this.isBrowser) {
         this._onResize = this.onResize.bind(this);
@@ -199,16 +201,17 @@ export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
     const credentials: LoginCredentials = { email, password };
 
     const loginSub = this.authService.login(credentials).subscribe({
-      next: (response) => {
+      next: (response: any) => {
         console.log('✅ Login successful:', response);
-        if (response.success) {
-          this.successMessage = `Welcome back, ${response.user?.name || 'Coder'}!`;
-          if (rememberMe && response.token) {
+        // Backend returns user object directly
+        if (response && response.id) {
+          this.successMessage = `Welcome back, ${response.fullName || 'Coder'}!`;
+          if (rememberMe) {
             localStorage.setItem('rememberMe', 'true');
           }
           setTimeout(() => this.router.navigate(['/dashboard']), 1500);
         } else {
-          this.handleLoginError({ message: response.message || 'Login failed' });
+          this.handleLoginError({ message: 'Login failed - invalid response' });
         }
       },
       error: (error) => {
