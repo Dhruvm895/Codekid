@@ -1,6 +1,7 @@
 // home.component.ts
-import { Component, OnInit, Inject, PLATFORM_ID, OnDestroy } from '@angular/core';
+import { Component, OnInit, Inject, PLATFORM_ID, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { Router } from '@angular/router';
 
 interface CodeSymbol {
   char: string;
@@ -25,6 +26,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   // A property to control the visibility of the video player overlay
   isPlayerVisible: boolean = false;
+  private isAutoTriggered: boolean = false;
 
   codeSymbols: CodeSymbol[] = [
     { char: '<>', x: 10, delay: 0 },
@@ -77,13 +79,31 @@ export class HomeComponent implements OnInit, OnDestroy {
   private isBrowser: boolean = false;
   private scrollListener?: () => void;
   private mouseMoveListener?: (e: MouseEvent) => void;
+  private keydownListener?: (e: KeyboardEvent) => void;
 
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+  constructor(
+    @Inject(PLATFORM_ID) private platformId: Object,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {
     this.isBrowser = isPlatformBrowser(this.platformId);
   }
 
   ngOnInit(): void {
     if (!this.isBrowser) return;
+
+    // Check if user was redirected from login to auto-play videos
+    const shouldAutoPlay = localStorage.getItem('autoPlayVideos');
+    if (shouldAutoPlay === 'true') {
+      console.log('🎬 Auto-playing videos after login...');
+      this.isAutoTriggered = true;
+      // Remove the flag immediately to prevent auto-play on future visits
+      localStorage.removeItem('autoPlayVideos');
+      // Start videos after a short delay to ensure DOM is ready
+      setTimeout(() => {
+        this.startLearning();
+      }, 1000);
+    }
 
     // Initialize animations after view is ready
     setTimeout(() => {
@@ -97,6 +117,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Add mouse move listener for hero parallax
     this.mouseMoveListener = this.onMouseMove.bind(this);
     document.addEventListener('mousemove', this.mouseMoveListener);
+
+    // Add escape key listener for closing fullscreen video
+    this.keydownListener = this.onKeydown.bind(this);
+    document.addEventListener('keydown', this.keydownListener);
   }
 
   ngOnDestroy(): void {
@@ -106,6 +130,9 @@ export class HomeComponent implements OnInit, OnDestroy {
       }
       if (this.mouseMoveListener) {
         document.removeEventListener('mousemove', this.mouseMoveListener);
+      }
+      if (this.keydownListener) {
+        document.removeEventListener('keydown', this.keydownListener);
       }
     }
   }
@@ -138,78 +165,133 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  private onKeydown(e: KeyboardEvent): void {
+    // Close video player when Escape key is pressed
+    if (e.key === 'Escape' && this.isPlayerVisible) {
+      console.log('🎬 Escape key pressed, closing video player');
+      this.closePlayer();
+    }
+  }
+
   startLearning(): void {
     if (!this.isBrowser) return;
     
     console.log('🎬 Starting video player...');
+    
+    // Show special message for auto-triggered videos after login
+    if (this.isAutoTriggered) {
+      console.log('🎉 Welcome back! Enjoy your coding adventure videos...');
+      this.isAutoTriggered = false; // Reset flag
+    }
+    
+    console.log('🎬 Setting isPlayerVisible to true...');
     this.isPlayerVisible = true;
+    
+    // Force change detection to ensure the DOM updates
+    this.cdr.detectChanges();
+    console.log('🎬 Change detection forced, isPlayerVisible:', this.isPlayerVisible);
 
     // Use setTimeout to allow Angular to render the video elements first
+    // Increased timeout to ensure DOM elements are fully rendered
     setTimeout(() => {
-      const video1 = document.getElementById('introVideo1') as HTMLVideoElement;
-      const video2 = document.getElementById('introVideo2') as HTMLVideoElement;
+      console.log('🎬 Attempting to find video elements...');
+      this.findAndPlayVideos();
+    }, 300); // Increased timeout significantly
+  }
 
-      console.log('🎬 Video elements found:', { video1: !!video1, video2: !!video2 });
+  private findAndPlayVideos(retryCount = 0): void {
+    console.log(`🔍 Searching for video elements (attempt ${retryCount + 1})...`);
+    console.log('🔍 isPlayerVisible state:', this.isPlayerVisible);
+    
+    // Check if the video container exists first
+    const videoOverlay = document.querySelector('.video-overlay');
+    console.log('🔍 Video overlay element found:', !!videoOverlay);
+    
+    const video1 = document.getElementById('introVideo1') as HTMLVideoElement;
+    const video2 = document.getElementById('introVideo2') as HTMLVideoElement;
 
-      if (video1 && video2) {
-        // Add error handling for video loading
-        video1.onerror = (e) => {
-          console.error('❌ Error loading first video:', e);
-          alert('Error loading video. Please check if the video file exists.');
-        };
+    console.log('🎬 Video elements found:', { video1: !!video1, video2: !!video2 });
+    
+    // Also check the DOM structure
+    const allVideos = document.querySelectorAll('video');
+    console.log('🔍 All video elements in DOM:', allVideos.length);
+    allVideos.forEach((video, index) => {
+      console.log(`🔍 Video ${index}:`, { id: video.id, src: video.src });
+    });
 
-        video2.onerror = (e) => {
-          console.error('❌ Error loading second video:', e);
-        };
+    if (video1 && video2) {
+      // Add error handling for video loading
+      video1.onerror = (e) => {
+        console.error('❌ Error loading first video:', e);
+        alert('Error loading video. Please check if the video file exists.');
+      };
 
-        // Add load event to ensure video is ready
-        video1.onloadeddata = () => {
-          console.log('✅ First video loaded successfully');
-        };
+      video2.onerror = (e) => {
+        console.error('❌ Error loading second video:', e);
+      };
 
-        video2.onloadeddata = () => {
-          console.log('✅ Second video loaded successfully');
-        };
+      // Add load event to ensure video is ready
+      video1.onloadeddata = () => {
+        console.log('✅ First video loaded successfully');
+      };
 
-        // Start playing the first video
-        video1.play().then(() => {
-          console.log('🎬 First video started playing');
+      video2.onloadeddata = () => {
+        console.log('✅ Second video loaded successfully');
+      };
+
+      // Start playing the first video
+      video1.play().then(() => {
+        console.log('🎬 First video started playing');
+        // Automatically enter fullscreen for the first video
+        this.enterFullscreen(video1);
+      }).catch((error) => {
+        console.error('❌ Error playing first video:', error);
+        // Show user-friendly error message
+        alert('Unable to play video. Please try again or check your browser settings.');
+      });
+
+      // Listen for when the first video ends
+      video1.onended = () => {
+        console.log('🎬 First video ended, starting second video');
+        // Hide the first video and show the second one
+        video1.style.display = 'none';
+        video2.style.display = 'block';
+        
+        // Play the second video
+        video2.play().then(() => {
+          console.log('🎬 Second video started playing');
+          // Automatically enter fullscreen for the second video
+          this.enterFullscreen(video2);
         }).catch((error) => {
-          console.error('❌ Error playing first video:', error);
-          // Show user-friendly error message
-          alert('Unable to play video. Please try again or check your browser settings.');
+          console.error('❌ Error playing second video:', error);
         });
+      };
 
-        // Listen for when the first video ends
-        video1.onended = () => {
-          console.log('🎬 First video ended, starting second video');
-          // Hide the first video and show the second one
-          video1.style.display = 'none';
-          video2.style.display = 'block';
-          
-          // Play the second video
-          video2.play().then(() => {
-            console.log('🎬 Second video started playing');
-          }).catch((error) => {
-            console.error('❌ Error playing second video:', error);
-          });
-        };
-
-        // When the second video ends, close the player
-        video2.onended = () => {
-          console.log('🎬 Both videos finished, closing player');
-          this.closePlayer();
-        };
-      } else {
-        console.error('❌ Video elements not found in DOM');
-        alert('Video player not available. Please refresh the page and try again.');
-      }
-    }, 100); // Increased timeout to ensure DOM is ready
+      // When the second video ends, close the player
+      video2.onended = () => {
+        console.log('🎬 Both videos finished, closing player');
+        // Exit fullscreen before closing
+        this.exitFullscreen();
+        this.closePlayer();
+      };
+    } else if (retryCount < 3) {
+      console.log(`🔄 Video elements not found, retrying... (attempt ${retryCount + 1}/3)`);
+      setTimeout(() => {
+        this.findAndPlayVideos(retryCount + 1);
+      }, 200);
+    } else {
+      console.error('❌ Video elements not found in DOM after 3 attempts');
+      alert('Video player not available. Please refresh the page and try again.');
+    }
   }
 
   // Method to close the video player
   closePlayer(): void {
     console.log('🎬 Closing video player');
+    
+    // Exit fullscreen before closing
+    this.exitFullscreen();
+    
     this.isPlayerVisible = false;
     
     // Reset video states when closing
@@ -230,6 +312,60 @@ export class HomeComponent implements OnInit, OnDestroy {
           video2.style.display = 'none';
         }
       }, 100);
+    }
+  }
+
+  // Helper method to enter fullscreen mode for video element
+  private enterFullscreen(videoElement: HTMLVideoElement): void {
+    if (!this.isBrowser) return;
+    
+    try {
+      if (videoElement.requestFullscreen) {
+        videoElement.requestFullscreen().then(() => {
+          console.log('🔳 Entered fullscreen mode');
+        }).catch((error) => {
+          console.error('❌ Failed to enter fullscreen:', error);
+        });
+      } else if ((videoElement as any).webkitRequestFullscreen) {
+        // Safari support
+        (videoElement as any).webkitRequestFullscreen();
+        console.log('🔳 Entered fullscreen mode (Safari)');
+      } else if ((videoElement as any).msRequestFullscreen) {
+        // IE/Edge support
+        (videoElement as any).msRequestFullscreen();
+        console.log('🔳 Entered fullscreen mode (IE/Edge)');
+      } else {
+        console.warn('⚠️ Fullscreen not supported by this browser');
+      }
+    } catch (error) {
+      console.error('❌ Error entering fullscreen:', error);
+    }
+  }
+
+  // Helper method to exit fullscreen mode
+  private exitFullscreen(): void {
+    if (!this.isBrowser) return;
+    
+    try {
+      if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().then(() => {
+            console.log('🔲 Exited fullscreen mode');
+          }).catch((error) => {
+            console.error('❌ Failed to exit fullscreen:', error);
+          });
+        } else if ((document as any).webkitExitFullscreen) {
+          // Safari support
+          (document as any).webkitExitFullscreen();
+          console.log('🔲 Exited fullscreen mode (Safari)');
+        } else if ((document as any).msExitFullscreen) {
+          // IE/Edge support
+          (document as any).msExitFullscreen();
+          console.log('🔲 Exited fullscreen mode (IE/Edge)');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error exiting fullscreen:', error);
     }
   }
 

@@ -52,6 +52,7 @@ export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
     private fb: FormBuilder,
     private authService: AuthService
   ) {
+    console.log('AuthComponent constructor called');
     this.isBrowser = isPlatformBrowser(this.platformId);
 
     this.loginForm = this.fb.group({
@@ -62,10 +63,36 @@ export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
 
     // Use afterNextRender for browser-only auth check
     afterNextRender(() => {
-      this.authService.checkAuthStatus();
-      if (this.authService.isLoggedIn()) {
-        this.router.navigate(['/dashboard']);
+      console.log('AuthComponent afterNextRender called');
+      
+      // Check if there's a token first
+      const hasToken = this.authService.getToken();
+      console.log('🔍 AuthComponent - Has token:', !!hasToken);
+      
+      if (!hasToken) {
+        console.log('No token found, showing auth form immediately');
+        return; // Stay on auth page
       }
+      
+      // If there's a token, subscribe to auth state changes to wait for validation
+      let hasChecked = false;
+      const authSubscription = this.authService.user$.subscribe(user => {
+        console.log('🔍 AuthComponent - User state changed:', user);
+        if (user) {
+          console.log('User is authenticated, redirecting to home...');
+          this.router.navigate(['/']);
+        } else if (hasChecked) {
+          // Only log this if we've already triggered the check
+          // This means the token was invalid and user was logged out
+          console.log('Token validation failed, staying on auth page');
+        }
+      });
+      
+      this.componentSubscriptions.add(authSubscription);
+      
+      // Trigger auth status check (this will validate the token)
+      hasChecked = true;
+      this.authService.checkAuthStatus();
     });
   }
 
@@ -209,7 +236,10 @@ export class AuthComponent implements OnInit, AfterViewInit, OnDestroy {
           if (rememberMe) {
             localStorage.setItem('rememberMe', 'true');
           }
-          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+          // Set flag to auto-play videos after login
+          localStorage.setItem('autoPlayVideos', 'true');
+          // Redirect to home page
+          setTimeout(() => this.router.navigate(['/']), 1500);
         } else {
           this.handleLoginError({ message: 'Login failed - invalid response' });
         }

@@ -166,11 +166,15 @@ export class AuthService {
     if (!isPlatformBrowser(this.platformId)) {
       return null; // Return null during SSR
     }
-    return localStorage.getItem(this.tokenKey);
+    const token = localStorage.getItem(this.tokenKey);
+    console.log('🔍 getToken() called, token value:', token);
+    return token;
   }
 
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    const loggedIn = !!this.getToken();
+    console.log('🔍 isLoggedIn() called, result:', loggedIn);
+    return loggedIn;
   }
 
   getCurrentUser(): any {
@@ -184,18 +188,36 @@ export class AuthService {
     }
     
     const token = localStorage.getItem(this.tokenKey);
+    console.log('🔍 checkAuthStatus - token found:', !!token);
+    
     if (token) {
       // Verify token with backend
+      console.log('🔍 Attempting to verify token with backend...');
       this.verifyToken(token).subscribe({
         next: (response) => {
+          console.log('🔍 Token verification response:', response);
           if (response.valid) {
-            this.userSubject.next(response.user);
+            // If user data is included, use it; otherwise create a minimal user object
+            const user = response.user || { 
+              id: 'user_from_token', 
+              email: 'user@example.com', 
+              name: 'Authenticated User' 
+            };
+            console.log('🔍 Setting user data:', user);
+            this.userSubject.next(user);
           } else {
+            console.log('🔍 Token is invalid, logging out...');
             this.logout();
           }
         },
-        error: () => this.logout()
+        error: (error) => {
+          console.log('🔍 Token verification failed with error:', error);
+          console.log('🔍 This likely means the backend server is not running');
+          this.logout();
+        }
       });
+    } else {
+      console.log('🔍 No token found, user remains logged out');
     }
   }
 }

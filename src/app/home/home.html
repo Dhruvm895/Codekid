@@ -67,12 +67,12 @@
     <div *ngIf="isPlayerVisible" class="video-overlay">
         <button class="close-button" (click)="closePlayer()">✖</button>
 
-        <video id="introVideo1" class="video-player" playsinline muted controls>
+        <video id="introVideo1" class="video-player" playsinline muted controls allowfullscreen>
             <source src="videos/Kid_Friendly_Coding_Video_Script.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
 
-        <video id="introVideo2" class="video-player" style="display: none;" playsinline muted controls preload="auto">
+        <video id="introVideo2" class="video-player" style="display: none;" playsinline muted controls preload="auto" allowfullscreen>
             <source src="videos/Coding_for_Kids_A_Second_Intro.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
