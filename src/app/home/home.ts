@@ -23,6 +23,9 @@ interface Feature {
 })
 export class HomeComponent implements OnInit, OnDestroy {
 
+  // A property to control the visibility of the video player overlay
+  isPlayerVisible: boolean = false;
+
   codeSymbols: CodeSymbol[] = [
     { char: '<>', x: 10, delay: 0 },
     { char: '{{ "{}" }}', x: 20, delay: 1 },
@@ -137,18 +140,97 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   startLearning(): void {
     if (!this.isBrowser) return;
+    
+    console.log('🎬 Starting video player...');
+    this.isPlayerVisible = true;
 
-    const button = document.querySelector('.cta-button') as HTMLElement;
-    if (button) {
-      button.style.transform = 'scale(0.95)';
+    // Use setTimeout to allow Angular to render the video elements first
+    setTimeout(() => {
+      const video1 = document.getElementById('introVideo1') as HTMLVideoElement;
+      const video2 = document.getElementById('introVideo2') as HTMLVideoElement;
+
+      console.log('🎬 Video elements found:', { video1: !!video1, video2: !!video2 });
+
+      if (video1 && video2) {
+        // Add error handling for video loading
+        video1.onerror = (e) => {
+          console.error('❌ Error loading first video:', e);
+          alert('Error loading video. Please check if the video file exists.');
+        };
+
+        video2.onerror = (e) => {
+          console.error('❌ Error loading second video:', e);
+        };
+
+        // Add load event to ensure video is ready
+        video1.onloadeddata = () => {
+          console.log('✅ First video loaded successfully');
+        };
+
+        video2.onloadeddata = () => {
+          console.log('✅ Second video loaded successfully');
+        };
+
+        // Start playing the first video
+        video1.play().then(() => {
+          console.log('🎬 First video started playing');
+        }).catch((error) => {
+          console.error('❌ Error playing first video:', error);
+          // Show user-friendly error message
+          alert('Unable to play video. Please try again or check your browser settings.');
+        });
+
+        // Listen for when the first video ends
+        video1.onended = () => {
+          console.log('🎬 First video ended, starting second video');
+          // Hide the first video and show the second one
+          video1.style.display = 'none';
+          video2.style.display = 'block';
+          
+          // Play the second video
+          video2.play().then(() => {
+            console.log('🎬 Second video started playing');
+          }).catch((error) => {
+            console.error('❌ Error playing second video:', error);
+          });
+        };
+
+        // When the second video ends, close the player
+        video2.onended = () => {
+          console.log('🎬 Both videos finished, closing player');
+          this.closePlayer();
+        };
+      } else {
+        console.error('❌ Video elements not found in DOM');
+        alert('Video player not available. Please refresh the page and try again.');
+      }
+    }, 100); // Increased timeout to ensure DOM is ready
+  }
+
+  // Method to close the video player
+  closePlayer(): void {
+    console.log('🎬 Closing video player');
+    this.isPlayerVisible = false;
+    
+    // Reset video states when closing
+    if (this.isBrowser) {
       setTimeout(() => {
-        button.style.transform = 'scale(1)';
-      }, 150);
+        const video1 = document.getElementById('introVideo1') as HTMLVideoElement;
+        const video2 = document.getElementById('introVideo2') as HTMLVideoElement;
+        
+        if (video1) {
+          video1.pause();
+          video1.currentTime = 0;
+          video1.style.display = 'block';
+        }
+        
+        if (video2) {
+          video2.pause();
+          video2.currentTime = 0;
+          video2.style.display = 'none';
+        }
+      }, 100);
     }
-
-    // You can replace this with actual navigation logic
-    console.log('Starting coding adventure!');
-    alert('Welcome to CodeKid! Your coding adventure is about to begin! 🚀');
   }
 
   // Helper method to get safe animation delay
@@ -156,5 +238,3 @@ export class HomeComponent implements OnInit, OnDestroy {
     return `${index * 0.2}s`;
   }
 }
-
-
