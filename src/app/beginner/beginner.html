@@ -31,12 +31,14 @@
   </div>
 
   <div class="levels">
-    <div 
-      *ngFor="let level of levels; trackBy: trackByLevelId" 
+  <ng-container *ngFor="let level of levels; trackBy: trackByLevelId">
+    <a
+      *ngIf="level.id === 1"
       class="level-card"
       [class.completed]="level.completed"
       [class.locked]="isLevelLocked(level)"
-      (click)="selectLevel(level)"
+      [routerLink]="'/beginner/lesson/1'"
+      style="cursor: pointer; text-decoration: none;"
     >
       <div class="level-header">
         <h2>{{level.title}}</h2>
@@ -46,13 +48,10 @@
           <span *ngIf="!level.completed && !isLevelLocked(level)" class="status-icon available">▶</span>
         </div>
       </div>
-      
       <p class="level-description">{{level.description}}</p>
-      
       <div class="level-topics">
         <span *ngFor="let topic of level.topics" class="topic-tag">{{topic}}</span>
       </div>
-      
       <div class="level-difficulty">
         <span class="difficulty-label">Difficulty:</span>
         <div class="difficulty-indicator" [attr.data-difficulty]="level.difficulty">
@@ -64,9 +63,41 @@
           <span class="difficulty-text">{{level.difficulty}}</span>
         </div>
       </div>
-    <a routerLink="/beginner/lesson/1" class="start-level-btn">Start Level 1</a>
+    </a>
+    <div
+      *ngIf="level.id !== 1"
+      class="level-card"
+      [class.completed]="level.completed"
+      [class.locked]="isLevelLocked(level)"
+      style="cursor: not-allowed;"
+    >
+      <div class="level-header">
+        <h2>{{level.title}}</h2>
+        <div class="level-status">
+          <span *ngIf="level.completed" class="status-icon completed">✓</span>
+          <span *ngIf="isLevelLocked(level)" class="status-icon locked">🔒</span>
+          <span *ngIf="!level.completed && !isLevelLocked(level)" class="status-icon available">▶</span>
+        </div>
+      </div>
+      <p class="level-description">{{level.description}}</p>
+      <div class="level-topics">
+        <span *ngFor="let topic of level.topics" class="topic-tag">{{topic}}</span>
+      </div>
+      <div class="level-difficulty">
+        <span class="difficulty-label">Difficulty:</span>
+        <div class="difficulty-indicator" [attr.data-difficulty]="level.difficulty">
+          <div class="difficulty-dots">
+            <span class="dot" [class.active]="level.difficulty === 'easy' || level.difficulty === 'medium' || level.difficulty === 'hard'"></span>
+            <span class="dot" [class.active]="level.difficulty === 'medium' || level.difficulty === 'hard'"></span>
+            <span class="dot" [class.active]="level.difficulty === 'hard'"></span>
+          </div>
+          <span class="difficulty-text">{{level.difficulty}}</span>
+        </div>
+      </div>
+
     </div>
-  </div>
+  </ng-container>
+</div>
   
   <div class="achievement-section" *ngIf="getCompletedCount() > 0">
     <h3>🏆 Your Achievements</h3>

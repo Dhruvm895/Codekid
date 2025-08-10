@@ -2,6 +2,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 interface Level {
   id: number;
@@ -26,7 +27,7 @@ export class BeginnerComponent {
       id: 1,
       title: 'Level 1',
       description: 'Learn what HTML is and create your first webpage with basic structure',
-      path: '/level/1',
+      path: '/lesson/1',
       difficulty: 'easy',
       topics: ['HTML Basics', 'Document Structure', '<html>', '<head>', '<body>'],
       completed: false
@@ -35,7 +36,7 @@ export class BeginnerComponent {
       id: 2,
       title: 'Level 2',
       description: 'Master headings and paragraphs to organize your content',
-      path: '/level/2',
+      path: '/lesson/2',
       difficulty: 'easy',
       topics: ['Headings', 'Paragraphs', '<h1>-<h6>', '<p>'],
       completed: false
@@ -44,7 +45,7 @@ export class BeginnerComponent {
       id: 3,
       title: 'Level 3',
       description: 'Add style to your text with formatting tags',
-      path: '/level/3',
+      path: '/lesson/3',
       difficulty: 'easy',
       topics: ['Text Formatting', '<strong>', '<em>', '<u>', '<br>'],
       completed: false
@@ -53,7 +54,7 @@ export class BeginnerComponent {
       id: 4,
       title: 'Level 4',
       description: 'Organize information using different types of lists',
-      path: '/level/4',
+      path: '/lesson/4',
       difficulty: 'medium',
       topics: ['Lists', '<ul>', '<ol>', '<li>', 'Nested Lists'],
       completed: false
@@ -62,7 +63,7 @@ export class BeginnerComponent {
       id: 5,
       title: 'Level 5',
       description: 'Add images and links to make your webpage interactive',
-      path: '/level/5',
+      path: '/lesson/5',
       difficulty: 'medium',
       topics: ['Images', 'Links', '<img>', '<a>', 'Attributes'],
       completed: false
@@ -71,7 +72,7 @@ export class BeginnerComponent {
       id: 6,
       title: 'Level 6',
       description: 'Create tables to display data in rows and columns',
-      path: '/level/6',
+      path: '/lesson/6',
       difficulty: 'medium',
       topics: ['Tables', '<table>', '<tr>', '<td>', '<th>'],
       completed: false
@@ -80,7 +81,7 @@ export class BeginnerComponent {
       id: 7,
       title: 'Level 7',
       description: 'Build forms to collect user input and information',
-      path: '/level/7',
+      path: '/lesson/7',
       difficulty: 'hard',
       topics: ['Forms', '<form>', '<input>', '<button>', 'Form Controls'],
       completed: false
@@ -89,12 +90,13 @@ export class BeginnerComponent {
       id: 8,
       title: 'Level 8',
       description: 'Learn semantic HTML and create a complete webpage',
-      path: '/level/8',
+      path: '/lesson/8',
       difficulty: 'hard',
       topics: ['Semantic HTML', '<header>', '<nav>', '<main>', '<footer>'],
       completed: false
     }
   ];
+selectedLevel: any;
 
   trackByLevelId(index: number, level: Level): number {
     return level.id;
