@@ -66,10 +66,24 @@ export class Navbar implements OnInit, OnDestroy {
     this.profileDropdownOpen = false;
   }
 
-  onLevelClick(level: string): void {
-    console.log(`Selected level: ${level}`);
+  onBeginnerClick(): void {
+    console.log('Beginner level selected');
     this.closeSidebar();
+    this.router.navigate(['/beginner']);
   }
+
+  onIntermediateClick(): void {
+    console.log('Intermediate level selected');
+    this.closeSidebar();
+    this.router.navigate(['/intermediate']);
+  }
+
+  onAdvancedClick(): void {
+    console.log('Advanced level selected');
+    this.closeSidebar();
+    this.router.navigate(['/advance']);
+  }
+
 
   onProfileClick(): void {
     if (this.isLoggedIn) {
