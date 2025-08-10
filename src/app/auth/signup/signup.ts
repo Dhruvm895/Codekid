@@ -125,7 +125,5 @@ export class SignupComponent {
     this.signupForm.disable();
   }
 
-  signUpWithGoogle() {
-    window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?...';
-  }
+
 }
