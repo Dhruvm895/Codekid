@@ -11,7 +11,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
   templateUrl: './lesson1.html',
   styleUrls: ['./lesson1.css']
 })
-export class Level1Component implements OnInit {
+export class Lesson1Component implements OnInit {
 
   // --- Component State ---
   progress = 0;
