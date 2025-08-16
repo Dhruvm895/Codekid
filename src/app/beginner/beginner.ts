@@ -1,8 +1,10 @@
 // beginner.component.ts
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { ProgressService } from '../services/progress.service';
+import { Subscription } from 'rxjs';
 
 interface Level {
   id: number;
@@ -21,13 +23,20 @@ interface Level {
   templateUrl: './beginner.html',
   styleUrls: ['./beginner.css']
 })
-export class BeginnerComponent {
+export class BeginnerComponent implements OnInit, OnDestroy {
+  private subscription: Subscription = new Subscription();
+
+  constructor(
+    private router: Router,
+    private progressService: ProgressService
+  ) {}
+
   levels: Level[] = [
     {
       id: 1,
       title: 'Level 1',
       description: 'Learn what HTML is and create your first webpage with basic structure',
-      path: '/lesson/1',
+      path: '/beginner/lesson1',
       difficulty: 'easy',
       topics: ['HTML Basics', 'Document Structure', '<html>', '<head>', '<body>'],
       completed: false
@@ -36,7 +45,7 @@ export class BeginnerComponent {
       id: 2,
       title: 'Level 2',
       description: 'Master headings and paragraphs to organize your content',
-      path: '/lesson/2',
+      path: '/beginner/lesson2',
       difficulty: 'easy',
       topics: ['Headings', 'Paragraphs', '<h1>-<h6>', '<p>'],
       completed: false
@@ -45,7 +54,7 @@ export class BeginnerComponent {
       id: 3,
       title: 'Level 3',
       description: 'Add style to your text with formatting tags',
-      path: '/lesson/3',
+      path: '/beginner/lesson3',
       difficulty: 'easy',
       topics: ['Text Formatting', '<strong>', '<em>', '<u>', '<br>'],
       completed: false
@@ -54,7 +63,7 @@ export class BeginnerComponent {
       id: 4,
       title: 'Level 4',
       description: 'Organize information using different types of lists',
-      path: '/lesson/4',
+      path: '/beginner/lesson4',
       difficulty: 'medium',
       topics: ['Lists', '<ul>', '<ol>', '<li>', 'Nested Lists'],
       completed: false
@@ -63,7 +72,7 @@ export class BeginnerComponent {
       id: 5,
       title: 'Level 5',
       description: 'Add images and links to make your webpage interactive',
-      path: '/lesson/5',
+      path: '/beginner/lesson5',
       difficulty: 'medium',
       topics: ['Images', 'Links', '<img>', '<a>', 'Attributes'],
       completed: false
@@ -72,7 +81,7 @@ export class BeginnerComponent {
       id: 6,
       title: 'Level 6',
       description: 'Create tables to display data in rows and columns',
-      path: '/lesson/6',
+      path: '/beginner/lesson6',
       difficulty: 'medium',
       topics: ['Tables', '<table>', '<tr>', '<td>', '<th>'],
       completed: false
@@ -81,7 +90,7 @@ export class BeginnerComponent {
       id: 7,
       title: 'Level 7',
       description: 'Build forms to collect user input and information',
-      path: '/lesson/7',
+      path: '/beginner/lesson7',
       difficulty: 'hard',
       topics: ['Forms', '<form>', '<input>', '<button>', 'Form Controls'],
       completed: false
@@ -90,12 +99,33 @@ export class BeginnerComponent {
       id: 8,
       title: 'Level 8',
       description: 'Learn semantic HTML and create a complete webpage',
-      path: '/lesson/8',
+      path: '/beginner/lesson8',
       difficulty: 'hard',
       topics: ['Semantic HTML', '<header>', '<nav>', '<main>', '<footer>'],
       completed: false
     }
   ];
+
+  ngOnInit() {
+    // Subscribe to progress changes
+    this.subscription.add(
+      this.progressService.progress$.subscribe(completedLessons => {
+        this.updateLevelCompletionStatus(completedLessons);
+      })
+    );
+  }
+
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
+  }
+
+  // Update level completion status based on progress service
+  private updateLevelCompletionStatus(completedLessons: number[]) {
+    this.levels.forEach(level => {
+      level.completed = completedLessons.includes(level.id);
+    });
+  }
+
 selectedLevel: any;
 
   trackByLevelId(index: number, level: Level): number {
@@ -109,16 +139,11 @@ selectedLevel: any;
     }
     
     console.log('Navigating to', level.path);
-    // In your routing setup, navigate to the level
-    // this.router.navigate([level.path]);
+    this.router.navigate([level.path]);
   }
 
   isLevelLocked(level: Level): boolean {
-    if (level.id === 1) return false; // First level is always unlocked
-    
-    // Check if previous level is completed
-    const previousLevel = this.levels.find(l => l.id === level.id - 1);
-    return previousLevel ? !previousLevel.completed : true;
+    return !this.progressService.isLessonUnlocked(level.id);
   }
 
   getCompletedCount(): number {
@@ -131,9 +156,28 @@ selectedLevel: any;
 
   // Method to mark a level as completed (call this when user completes a level)
   markLevelCompleted(levelId: number) {
-    const level = this.levels.find(l => l.id === levelId);
-    if (level) {
-      level.completed = true;
+    this.progressService.completeLesson(levelId);
+    this.showCompletionMessage(levelId);
+  }
+
+  // Show completion message and next level availability
+  private showCompletionMessage(completedLevelId: number) {
+    const nextLevel = this.levels.find(l => l.id === completedLevelId + 1);
+    
+    if (nextLevel) {
+      setTimeout(() => {
+        alert(`🎉 Congratulations! Level ${completedLevelId} completed!\n🔓 Level ${nextLevel.id} is now unlocked!`);
+      }, 500);
+    } else {
+      setTimeout(() => {
+        alert(`🏆 Amazing! You've completed Level ${completedLevelId}!\n👑 You've finished all beginner levels!`);
+      }, 500);
     }
+  }
+
+  // Reset all progress (for testing purposes)
+  resetProgress() {
+    this.progressService.resetProgress();
+    console.log('🔄 All progress reset!');
   }
 }

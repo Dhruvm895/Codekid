@@ -1,8 +1,9 @@
 import { Component, OnInit, SecurityContext } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ProgressService } from '../../../services/progress.service';
 
 @Component({
   selector: 'app-level1',
@@ -37,7 +38,11 @@ export class Lesson1Component implements OnInit {
 </body>
 </html>`;
 
-  constructor(private sanitizer: DomSanitizer) {}
+  constructor(
+    private sanitizer: DomSanitizer,
+    private progressService: ProgressService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.resetCode();
@@ -116,6 +121,28 @@ export class Lesson1Component implements OnInit {
 
   /** Checks if all steps are completed to mark the level as finished. */
   private checkLevelCompletion(): void {
+    const wasCompleted = this.isLevelCompleted;
     this.isLevelCompleted = Object.values(this.challengeSteps).every(Boolean);
+    
+    // If lesson just completed, mark it in progress service
+    if (this.isLevelCompleted && !wasCompleted) {
+      console.log('🎉 Lesson 1 completed!');
+      this.progressService.completeLesson(1);
+      
+      // Show completion message and navigation options
+      setTimeout(() => {
+        const result = confirm(
+          '🎉 Congratulations! You completed Lesson 1!\n\n' +
+          '🔓 Lesson 2 is now unlocked!\n\n' +
+          'Would you like to go to Lesson 2 now?'
+        );
+        
+        if (result) {
+          this.router.navigate(['/beginner/lesson2']);
+        } else {
+          this.router.navigate(['/beginner']);
+        }
+      }, 1000);
+    }
   }
 }
